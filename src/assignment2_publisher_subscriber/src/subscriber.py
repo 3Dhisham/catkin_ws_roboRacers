@@ -4,6 +4,7 @@ from autominy_msgs.msg import SpeedCommand, NormalizedSteeringCommand
 
 # Callback function that prints speed value
 def speed_value(msg):
+    print("Current Speed: ")
     print(msg.value)
     print(" ----------------------------- ")
 
