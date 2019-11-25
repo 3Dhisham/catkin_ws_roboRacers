@@ -5,26 +5,30 @@ from geometry_msgs.msg import PoseWithCovariance, Pose
 
 
 class CalibrateSteering:
-
     # Init Coordinate points
     x_point = 0.0
     y_point = 0.0
     z_point = 0.0
 
-    # Initiate node and subscribers
+    # Initiate node and
+    #
+    #
+    #
+    # subscribers
     def __init__(self):
         rospy.init_node("calibrate_steering")
-		
+
         # This subscribes to the ceiling camera topic which prints out the points based on car location
-        self.localization_subscriber = rospy.Subscriber("/communication/gps/5", Odometry, self.read_points, queue_size=10)
-        
-		
-        self.angle_subscriber = rospy.Subscriber("/sensors/arduino/steering_angle", SteeringFeedback, self.steering_angle,queue_size=10)
-        self.speed_publisher = rospy.Publisher("/actuators/speed", SpeedCommand, queue_size=10)
-        
-		self.steering_publisher = rospy.Publisher("/actuators/steering_normalized", NormalizedSteeringCommand,
-                                              queue_size=10)
-        # The spin() function runs the ros node in loops 
+        self.localization_subscriber = rospy.Subscriber("/communication/gps/5", Odometry, self.read_points,
+                                                        queue_size=10)
+
+        self.angle_subscriber = rospy.Subscriber("/sensors/arduino/steering_angle", SteeringFeedback,
+                                                 self.steering_angle, queue_size=10)
+        self.speed_publisher = rospy.Publisher("/actuators/speed", self.SpeedCommand, queue_size=10)
+
+        self.steering_publisher = rospy.Publisher("/actuators/steering_normalized", self.NormalizedSteeringCommand,
+                                                  queue_size=10)
+        # The spin() function runs the ros node in loops
         rospy.spin()
         self.rate = rospy.Rate(10)  # 10hz
 
@@ -38,7 +42,6 @@ class CalibrateSteering:
         speed_msg.value = speedVal
         self.speed_publisher.publish(speed_msg)
         self.rate.sleep()
-
 
     # Extracts the points from the localization topic and prints them out
     def read_points(self, odometry):
@@ -56,13 +59,11 @@ class CalibrateSteering:
         print("z: ", z_point)
         print("=======================================================")
 
- 
-		
 
 if __name__ == '__main__':
     try:
         steering = CalibrateSteering()
         steering.drive(0.8, 0.1)
-		
+
     except rospy.ROSInterruptException:
         pass
