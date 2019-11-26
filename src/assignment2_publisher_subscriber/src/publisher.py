@@ -16,11 +16,14 @@ def pubSpeed():
     rate = rospy.Rate(10) # 10hz
 
     while not rospy.is_shutdown():
-        rospy.loginfo("Publishing...")
+        rospy.loginfo("Publishing at speed %f and at steering %f..." % (1.0,1.0) )
         #print("test")
         steeringPub.publish(value=1.0)
         speedPub.publish(value=0.1)
         rate.sleep()
+        steeringPub.publish(value=0.0)
+        speedPub.publish(value=0.0)
+
 
 
 if __name__ == '__main__':
