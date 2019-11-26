@@ -7,3 +7,5 @@ devel/
 logs/
 /.metadata/
 .vscode
+.idea
+venv
