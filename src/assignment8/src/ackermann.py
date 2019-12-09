@@ -12,11 +12,10 @@ from std_msgs.msg import String
 class AckermannOdo:
 
     def __init__(self):
-        ''' Publishers and Subscribers '''
         # Subscribers
         self.sub_speed = rospy.Subscriber("/sensors/speed", Speed, self.callback_speed, queue_size=100)
         self.sub_steering = rospy.Subscriber("/sensors/steering", SteeringAngle, self.callback_steering , queue_size=100)
-        self.sub_odometry = rospy.Subscriber('/communication/127/localization', Odometry, self.callback_odometry, queue_size=100)
+        self.sub_odometry = rospy.Subscriber("/sensors/localization/filtered_map", Odometry, self.callback_odometry, queue_size=100)
 
         # initial parameters
         self.is_loc_initialized = True
@@ -42,7 +41,7 @@ class AckermannOdo:
     def execute(self):
         # Sleep a few seconds to initialize node
         rospy.sleep(2.0)
-        pub_odometry= rospy.Publisher('/roboRacers_odo', Odometry, queue_size=100) 
+        pub_odometry= rospy.Publisher("/roboRacers_odo", Odometry, queue_size=100) 
         ackermann_odo = AckermannOdo()
         rospy.sleep(2.0)
 
@@ -105,8 +104,8 @@ def main():
 
 
 if __name__ == '__main__':
-    print(40*"#")
+    print(40*"-")
     print("   Publishing...   ")
     main()
     print("   Done   ")
-    print(40*"#")
+    print(40*"-")
