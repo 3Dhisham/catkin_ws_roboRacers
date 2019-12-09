@@ -23,7 +23,7 @@ pub_steer = rospy.Publisher("/actuators/steering_normalized", NormalizedSteering
 rate = rospy.Rate(10)  # 10hz
 
 iter_per_speed = 2
-acceleration_time = 3  # in seconds
+acceleration_time = 15 # in seconds
 speed_list = [0.2]
 res = {}
 steering = 1.0

@@ -9,7 +9,7 @@ from autominy_msgs.msg import SpeedCommand, NormalizedSteeringCommand
 
 def drive_at_speed(speed, steering):
     pub_steer.publish(value=steering)
-    rospy.sleep(execution_time)
+    rospy.sleep(2.0)
     pub_speed.publish(value=speed)
     #rospy.sleep()
     pub_speed.publish(value=0.0)
@@ -24,8 +24,8 @@ pub_steer = rospy.Publisher("/actuators/steering_normalized", NormalizedSteering
 rate = rospy.Rate(10)  # 10hz
 
 iter_per_speed = 2
-execution_time = 4  # in seconds
-speed_list = [0.4]
+execution_time = 8  # in seconds
+speed_list = [0.3]
 res = {}
 steering = 1.0
 for speed in speed_list:

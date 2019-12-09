@@ -14,22 +14,17 @@ class AckermannOdo:
     def __init__(self):
         ''' Publishers and Subscribers '''
         # Subscribers
-        self.sub_speed = rospy.Subscriber("/sensors/speed", Speed, self.callback_speed, queue_size=10)
-        self.sub_steering = rospy.Subscriber("/sensors/steering", SteeringAngle, self.callback_steering , queue_size=10)
-        self.sub_odometry = rospy.Subscriber("/sensors/localization/filtered_map", Odometry, self.callback_odometry, queue_size=10)
-        # Publishers
-        self.pub_speed = rospy.Publisher("/actuators/speed", SpeedCommand, queue_size=10)
-        self.pub_steer = rospy.Publisher("/actuators/steering_normalized", NormalizedSteeringCommand, queue_size=10)
-        
+        self.sub_speed = rospy.Subscriber("/sensors/speed", Speed, self.callback_speed, queue_size=100)
+        self.sub_steering = rospy.Subscriber("/sensors/steering", SteeringAngle, self.callback_steering , queue_size=100)
+        self.sub_odometry = rospy.Subscriber('/communication/127/localization', Odometry, self.callback_odometry, queue_size=100)
+
         # initial parameters
         self.is_loc_initialized = True
-        self.init_velocity = 0
-        self.init_x_velo = 0
-        self.init_y_velo = 0
-        self.init_theta = 0
+        self.speed = 0.0
+        self.init_x_pose = 0.0
+        self.init_y_pose = 0.0
+        self.init_theta = 0.0
         
-        self.rate = rospy.Rate(100)  # 100hz
-
     def callback_steering(self, data):
         self.steering = data.value
 
@@ -38,67 +33,66 @@ class AckermannOdo:
 
     def callback_odometry(self, data):
         if self.is_loc_initialized:
-            self.init_x_velo = data.pose.pose.position.x
-            self.init_y_velo = data.pose.pose.position.y
-            self.init_theta = math.acos(data.pose.pose.orientaion.w)
+            self.init_x_pose = data.pose.pose.position.x
+            self.init_y_pose = data.pose.pose.position.y
+            self.init_theta = math.acos(data.pose.pose.orientation.w)
 
         self.is_loc_initialized = False
 
-        print("initial x: ", self.init_x_velo)
-        print("initial y: ", self.init_y_velo)
-        print("initial theta: ", self.init_theta)
-
     def execute(self):
-    	# Sleep a few seconds to initialize ndoe
+        # Sleep a few seconds to initialize node
+        rospy.sleep(2.0)
+        pub_odometry= rospy.Publisher('/roboRacers_odo', Odometry, queue_size=100) 
+        ackermann_odo = AckermannOdo()
         rospy.sleep(2.0)
 
-        self.wheelbase = 0.27
-
-        ackermann_odo = AckermannOdo()
-        rospy.sleep(1.0)
-
-        pub_odometry= rospy.Publisher("/roboRacers_odo", Odometry, queue_size=100) 
-
         # create local values from initial values
-        old_y = ackermann_odo.init_y_velo
-        old_x = ackermann_odo.init_x_velo
+        old_x = ackermann_odo.init_x_pose
+        old_y = ackermann_odo.init_y_pose
         old_theta = ackermann_odo.init_theta
+        wheelbase = 0.27
+        
+        rate = rospy.Rate(100)
 
-        self.rate = rospy.Rate(100)
-
-        while not rospy.is_shutdown:
+        while not rospy.is_shutdown():
 
             velocity = ackermann_odo.speed
-            steering_angle = ackermann_odo.steering.value
+            steering_angle = ackermann_odo.steering
             time_delta = 0.01
 
             # Equations
-            new_x = old_x + (time_delta * (velocity * math.cos(old_theta)))
-            new_y = old_y + (time_delta * (velocity * math.sin(old_theta)))
-            new_theta = old_theta + (time_delta * (velocity / self.wheelbase * math.tan(steering_angle)))
+            x_dot = velocity * math.cos(old_theta)
+            y_dot = velocity * math.sin(old_theta)
+            theta_dot = (velocity / wheelbase) * math.tan(steering_angle)
 
-            # create publsiher and pub the new odometry
-            msg = Odometry()
-            msg.header.frame_id = "map"
-            msg.child_frame_id = "base_link"
+            current_x = old_x + time_delta * x_dot
+            current_y = old_y + time_delta * y_dot
+            current_theta = old_theta + time_delta * theta_dot
 
-            msg.pose.pose.position.x = new_x
-            msg.pose.pose.position.y = new_y
-            msg.pose.pose.position.z = 1
+            # create publisher and pub the new odometry
+            odo_msg = Odometry()
+            odo_msg.header.frame_id = "map"
+            odo_msg.child_frame_id = "base_link"
 
-            msg.pose.pose.orientation.w = new_theta
+            # -3.0 to create a relocation on the rviz plane (can be removed)
+            odo_msg.pose.pose.position.x = current_x - 3.0
+            odo_msg.pose.pose.position.y = current_y - 3.0
+            odo_msg.pose.pose.position.z = 1.0
 
-            # publish to our new odometry topic
-            pub_odometry.publish(msg)
+            odo_msg.pose.pose.orientation.w = math.cos(current_theta/2)
+            odo_msg.pose.pose.orientation.z = math.sin(current_theta/2)
+
+            pub_odometry.publish(odo_msg)
 
             # overwrite values for next run
-            old_x = new_x
-            old_y = new_y
-            old_theta = new_theta
+            old_x = current_x
+            old_y = current_y
+            old_theta = current_theta
 
-            self.rate.sleep()
+            rate.sleep()
 
         rospy.spin()
+
 
 
 def main():
@@ -111,6 +105,8 @@ def main():
 
 
 if __name__ == '__main__':
-    print(40*"#") 
+    print(40*"#")
+    print("   Publishing...   ")
     main()
+    print("   Done   ")
     print(40*"#")
