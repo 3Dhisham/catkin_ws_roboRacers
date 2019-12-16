@@ -1,5 +1,3 @@
-# !/usr/bin/env python2
-import sys
 
 import rospy
 from autominy_msgs.msg import SpeedCommand, NormalizedSteeringCommand, SteeringAngle, Tick, NormalizedSpeedCommand
