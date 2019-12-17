@@ -25,10 +25,6 @@ class PDController:
         self.z_orientation = 0.0
         self.loc_array = []
         self.theta = 0.0
-        self.kp = 0
-        self.kd = 0
-        self.ki = 0
-        self.wanted_angle = 0.0
         self.speed = 0.0
         self.steering_angle = 0.0
 
@@ -64,7 +60,7 @@ class PDController:
                 self.steering_angle = (math.pi + theta) / math.pi
             else:
                 self.steering_angle = (math.pi - theta) / -math.pi
-        # To make sure that an angle is being published
+        # To make sure that a steering input is being published
         else:
             self.steering_angle = theta / math.pi
 
@@ -74,7 +70,6 @@ class PDController:
     def execute(self, desired_orientation, speed):
         # Sleep a few seconds to initialize node
         rospy.sleep(2.0)
-        pdc = PDController()
         rate = rospy.Rate(100)
 
         while not rospy.is_shutdown():
@@ -104,7 +99,6 @@ if __name__ == '__main__':
     print(40 * "-")
     print("   Starting...   ")
     pdc = PDController()
-    '''Enter desired destination orientation. For 0 type 0, for Pi type 180 '''
     print(" ")
     desired_angle=input("Enter desired orientation. For zero type 0, for Pi type 180: ")
     main(desired_angle, 0.2)
