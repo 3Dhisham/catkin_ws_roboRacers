@@ -22,6 +22,7 @@ class Lane:
         return np.column_stack((self.spline_x(param), self.spline_y(param)))
 
     def closest_point(self, point, precision=0.001, min_param=0.0, max_param=-1.0):
+        #abstand zw gesampled punkte in meter
         step_size = 0.2
         if max_param < 0:
             max_param = self.length()
@@ -48,6 +49,7 @@ class Map:
 
     def __init__(self):
         self.lane_1 = np.load("lane1.npy")
+        # Lane 2 is the outer lane
         self.lane_2 = np.load("lane2.npy")
         self.lanes = [
             Lane(self.lane_1[[0, 50, 209, 259, 309, 350, 409, 509, 639, 750, 848, 948, 1028, 1148, 1200, 1276], :]),

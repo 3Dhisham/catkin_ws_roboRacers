@@ -6,6 +6,9 @@ from geometry_msgs.msg import Point, PointStamped
 import scipy.interpolate
 import numpy as np
 from scipy.spatial.distance import cdist
+import math
+import tf
+import sys
 
 from autominy_msgs.msg import Tick
 from std_msgs.msg import String
@@ -95,6 +98,7 @@ class Map:
 
     def __init__(self):
         self.lane_1 = np.load("lane1.npy")
+        # Lane 2 is the outer lane
         self.lane_2 = np.load("lane2.npy")
         self.lanes = [
             Lane(self.lane_1[[0, 50, 209, 259, 309, 350, 409, 509, 639, 750, 848, 948, 1028, 1148, 1200, 1276], :]),
