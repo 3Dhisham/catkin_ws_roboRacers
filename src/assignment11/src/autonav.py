@@ -19,45 +19,14 @@ from autominy_msgs.msg import SpeedCommand
 from autominy_msgs.msg import NormalizedSteeringCommand
 from nav_msgs.msg import Odometry
 
-# ---------------------------------------------
-# ----------------- from U9 -------------------
-# ---------------------------------------------
 pi = math.pi
 
-class OdoMeasurer():
-    def __init__(self):
-        self.initial_pose = True
-        self.initial_steering = True
-        self.theta = 0 
-        ceiling_cam_sub = rospy.Subscriber('/communication/gps/11', Odometry, self.ceiling_callback)
-        steering_angle_sub = rospy.Subscriber('/sensors/steering', SteeringAngle, self.steering_callback)
 
-    def ceiling_callback(self,data):
-        self.theta = tf.transformations.euler_from_quaternion([data.pose.pose.orientation.w,data.pose.pose.orientation.x,data.pose.pose.orientation.y,data.pose.pose.orientation.z])[0]
 
-    def steering_callback(self,data):
-        self.steering= data.value
 
-def error_signed(wanted_angle,theta):
-    # let the angles wrap around 2pi and calculate smaller distance, left or right
-    # TO DO: would be better computationally to wrap around pi as the angles
-    # are given wrapped around pi
-    # like this it was easier to think of for me
-
-    wanted_angle  %= 2*pi 
-    theta  %= 2*pi 
-
-    right_dist = (2*pi - theta + wanted_angle) % (2 * pi)
-    left_dist =  (2*pi - wanted_angle + theta) % (2 * pi)
-
-    if right_dist < left_dist:
-        return -right_dist #negative value for steering to right
-    else:
-        return left_dist  #positive for steering to left
-
-# ---------------------------------------------
-# -------------- from map.py ------------------
-# ---------------------------------------------
+# -----------------------------------------------------------------
+# -------------- from map.py --------------------------------------
+# -----------------------------------------------------------------
 class Lane:
 
     def __init__(self, support_points):
@@ -166,21 +135,79 @@ class MapVisualization:
 
             self.lane_pub.publish(msg)
 
-# ---------------------------------------------
-# ----------------- main ----------------------
-# ---------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# ----------------- from U9 ----------------------------------------------------
+# ------------------------------------------------------------------------------
+
+class OdoMeasurer:
+    
+    def __init__(self):
+        # Subscribers
+        self.sub_speed = rospy.Subscriber("/sensors/speed", Speed, self.callback_speed, queue_size=100)
+        self.sub_steering = rospy.Subscriber("/sensors/steering", SteeringAngle, self.callback_steering, queue_size=100)
+        self.sub_localize = rospy.Subscriber("/communication/gps/15", Odometry, self.callback_localize, queue_size=100)
+        self.sub_filteredMap = rospy.Subscriber("/sensors/localization/filtered_map", Odometry, self.callback_localize, queue_size=100)
+
+        # Publishers
+        self.pub_speed = rospy.Publisher("/actuators/speed", SpeedCommand, queue_size=10)
+        self.pub_steer = rospy.Publisher("/actuators/steering_normalized", NormalizedSteeringCommand, queue_size=10)
+        # initial parameters
+        self.x_orientation = 0.0
+        self.y_orientation = 0.0
+        self.z_orientation = 0.0
+        self.position = Point(x=0, y=0, z=0)
+        self.loc_array = []
+        self.theta = 0.0
+        self.speed = 0.0
+        self.steering_angle = 0.0
+    
+    '''--------------- Callbacks ---------------'''
+
+    def callback_speed(self, data):
+        self.speed = data.value
+
+
+    def callback_steering(self, data):
+        self.steering_angle = data.value
+
+    def callback_localize(self, data):
+        quaternion = data.pose.pose.orientation
+        self.x_orientation = quaternion.x
+        self.y_orientation = quaternion.y
+        self.z_orientation = quaternion.z
+        self.loc_array = [quaternion.w, self.x_orientation, self.y_orientation, self.z_orientation]
+        self.theta = tf.transformations.euler_from_quaternion(self.loc_array)[0]
+        self.position = data.pose.pose.position
+
+
+    def error_signed(self, wanted_angle, theta):
+        # let the angles wrap around 2pi and calculate smaller distance, left or right
+        # TO DO: would be better computationally to wrap around pi as the angles
+        # are given wrapped around pi
+        # like this it was easier to think of for me
+
+        wanted_angle  %= 2*pi 
+        theta  %= 2*pi 
+
+        right_steer_val = (2*pi - theta + wanted_angle) % (2 * pi)
+        left_steer_val =  (2*pi - wanted_angle + theta) % (2 * pi)
+
+        if right_steer_val < left_steer_val:
+            return -right_steer_val #negative value for steering to right
+        else:
+            return left_steer_val  #positive for steering to left
+
+
+# -----------------------------------------------------------------
+# ----------------- main ------------------------------------------
+# -----------------------------------------------------------------
 
 if __name__ == "__main__":
     mapVisual = MapVisualization()
-
-    rospy.init_node('my_odometry', anonymous=True)
-
-    # ---Publishers---
-    speed_pub = rospy.Publisher('/actuators/speed', SpeedCommand, queue_size=10)
-    steering_pub = rospy.Publisher('/actuators/speed', SpeedCommand, queue_size=10)
-    pub_steering = rospy.Publisher("/actuators/steering_normalized", NormalizedSteeringCommand, queue_size=100)
-
     odo = OdoMeasurer()
+    rospy.init_node('my_odometry', anonymous=True)
     rospy.sleep(1)
 
     # constants
@@ -190,7 +217,7 @@ if __name__ == "__main__":
 
     # initialize loop variables
     theta = odo.theta
-    old_error = abs(error_signed(wanted_angle, theta))
+    old_error = abs(odo.error_signed(wanted_angle, theta))
     t = 0
     error_diff = 0
 
@@ -199,16 +226,16 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
 
         theta = odo.theta
-        speed_pub.publish(value=0.2)
+        odo.pub_speed.publish(value=0.2)
     
         # get steering with direction
-        steering = error_signed(wanted_angle, theta) / math.pi
+        steering = odo.error_signed(wanted_angle, theta) / math.pi
         # get absolute error
         error = abs(steering)
     
         # dont measure error too often, only every 16th loop
         # so the noise is not too big
-        if (t == 0):
+        if t == 0:
             error_diff = error - old_error
             old_error = error
             t = (t+1) % 16
@@ -216,7 +243,7 @@ if __name__ == "__main__":
         # control formula 
         steering_angle = Kp * steering + (Kd * error_diff) / math.pi
 
-        pub_steering.publish(value=steering_angle)
+        odo.pub_steer.publish(value=steering_angle)
     
         r.sleep()
 
