@@ -27,9 +27,6 @@ class SpeedController:
         self.rate = rospy.Rate(100)
         self.tmr = rospy.Timer(rospy.Duration.from_sec(0.01), self.callback_control)
 
-        
-
-
         while not rospy.is_shutdown():
             self.rate.sleep()
 

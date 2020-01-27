@@ -63,6 +63,8 @@ array2_y = points_np2[:,2]
 spline2_x = scipy.interpolate.CubicSpline(arc2_array, array2_x, bc_type='periodic')
 spline2_y = scipy.interpolate.CubicSpline(arc2_array, array2_y, bc_type='periodic')
 
+
+
 def points_distance(point1, point2):
     return(np.linalg.norm(point1 - point2))
 
