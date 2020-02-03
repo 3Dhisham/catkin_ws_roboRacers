@@ -122,7 +122,7 @@ def callback_controller(msg):
     global wanted_angle, steering, old_error, time, pos, spline1_x, spline1_y, wanted_point, pMarker, old_seq, chosen_lane, spline2_x, spline2_y, offset, kd, kp
     global curve_speed, straight_speed
     new_seq = msg.header.seq
-    print("curennt lane: " + str(chosen_lane))
+    print("current lane: " + str(chosen_lane))
 
     if(new_seq > old_seq):        
         pos[0] = msg.pose.pose.position.x
@@ -181,7 +181,7 @@ def publisher(arg):
         #print("Steering: " + str(steering))
         #print("type of Steering: " + str(type (steering)))
         steering_msg.value = float(steering)
-        speed_msg.value = 0.5
+        speed_msg.value = 0.2
         steering_pub.publish(steering_msg)
         speed_pub.publish(speed_msg)
         point_marker = point_marker_properties(pMarker, [0.0, 1.0, 0.0])
