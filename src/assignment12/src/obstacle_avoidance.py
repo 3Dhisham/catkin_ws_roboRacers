@@ -49,7 +49,6 @@ class ObstacleAvoidance:
     def callback_lane(self, msg):
         self.lane = msg.data
 
-
     def is_obstacle_on_lane(self, lane, point_cloud):
         obstacles = 0
         position_x = self.pose.pose.pose.position.x
@@ -70,17 +69,16 @@ class ObstacleAvoidance:
                     return True
         return False
 
-
     def callback_scanner(self, msg):
         points_ahead = int(0.25 / msg.angle_increment)
         alpha = msg.angle_min
         point_cloud = np.empty([4, 0])
         i = 0
-        for rangee in msg.ranges:
+        for range_ in msg.ranges:
             alpha += msg.angle_increment
 
-            if rangee < 1.2 and (i < points_ahead or i > len(msg.ranges) - points_ahead):
-                p = np.array([rangee * np.cos(alpha) - 0.18, rangee * np.sin(alpha), 0.0, 1.0])
+            if range_ < 1.2 and (i < points_ahead or i > len(msg.ranges) - points_ahead):
+                p = np.array([range_ * np.cos(alpha) - 0.18, range_ * np.sin(alpha), 0.0, 1.0])
                 #stack into 2D array
                 point_cloud = np.column_stack([point_cloud, p])
 
